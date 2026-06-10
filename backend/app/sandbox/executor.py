@@ -32,7 +32,7 @@ class SandboxExecutor:
                 image=settings.sandbox_image,
                 command=["sleep", str(timeout + 10)],
                 working_dir="/sandbox",
-                network_disabled=True,
+                network_disabled=False,
                 mem_limit=settings.sandbox_memory_limit,
                 cpu_quota=int(settings.sandbox_cpu_limit * 100000),
                 detach=True,

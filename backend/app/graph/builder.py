@@ -15,9 +15,46 @@ from app.agents.pr_creator import pr_creator
 from app.sandbox.runner import run_tests
 
 
+# async def sandbox_node(state: dict) -> dict:
+#     """Sandbox is not an agent — it's a tool. We wrap it as a graph node here."""
+#     result = await run_tests(test_code=state.get("test_code", ""))
+#     return {
+#         "tests_passed": result["tests_passed"],
+#         "test_output": result["output"],
+#         "events": [{
+#             "agent": "sandbox",
+#             "type": "completed" if result["tests_passed"] else "failed",
+#             "summary": f"Pytest: {result['summary']['passed']} passed, {result['summary']['failed']} failed",
+#         }],
+#     }
+# async def sandbox_node(state: dict) -> dict:
+#     """Sandbox is not an agent — it's a tool. We wrap it as a graph node here."""
+#     # Local repo path — in dev we use /tmp/{repo_name}
+#     repo_name = state.get("repo_full_name", "").split("/")[-1]
+#     repo_path = f"/tmp/{repo_name}"
+
+#     result = await run_tests(
+#         test_code=state.get("test_code", ""),
+#         repo_path=repo_path,
+#     )
+#     return {
+#         "tests_passed": result["tests_passed"],
+#         "test_output": result["output"],
+#         "events": [{
+#             "agent": "sandbox",
+#             "type": "completed" if result["tests_passed"] else "failed",
+#             "summary": f"Pytest: {result['summary']['passed']} passed, {result['summary']['failed']} failed",
+#         }],
+#     }
 async def sandbox_node(state: dict) -> dict:
-    """Sandbox is not an agent — it's a tool. We wrap it as a graph node here."""
-    result = await run_tests(test_code=state.get("test_code", ""))
+    repo_name = state.get("repo_full_name", "").split("/")[-1]
+    repo_path = f"/tmp/{repo_name}"
+
+    result = await run_tests(
+        test_code=state.get("test_code", ""),
+        repo_path=repo_path,
+        diff=state.get("proposed_diff", ""),
+    )
     return {
         "tests_passed": result["tests_passed"],
         "test_output": result["output"],

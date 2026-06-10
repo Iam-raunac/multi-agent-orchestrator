@@ -1,6 +1,15 @@
 from app.agents.base import BaseAgent
 from app.llm.router import llm_router
 
+def _strip_fences(text: str) -> str:
+    text = text.strip()
+    if text.startswith("```"):
+        lines = text.split("\n")
+        lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines)
+    return text
 
 SYSTEM_PROMPT = """You are an expert software engineer who writes precise code fixes.
 
@@ -48,6 +57,7 @@ Write the unified diff to fix this issue."""
             ],
             task="code",
         )
+        diff = _strip_fences(diff)
 
         return {
             "proposed_diff": diff.strip(),

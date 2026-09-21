@@ -15,8 +15,8 @@ class Settings(BaseSettings):
 
     # Groq LLM (free tier)
     groq_api_key: str
-    groq_reason_model: str = "llama-3.3-70b-versatile"
-    groq_code_model: str = "qwen-2.5-coder-32b"
+    groq_reason_model: str = "openai/gpt-oss-120b"
+    groq_code_model: str = "openai/gpt-oss-120b"
 
     # Ollama (optional local fallback)
     ollama_base_url: str = "http://localhost:11434"

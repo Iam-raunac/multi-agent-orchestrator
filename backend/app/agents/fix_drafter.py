@@ -38,8 +38,14 @@ class FixDrafterAgent(BaseAgent):
         # If this is a retry, include previous test failures so LLM can learn from them
         retry_hint = ""
         if retry_count > 0:
-            prev_errors = state.get("test_output", "")
-            retry_hint = f"\n\nPREVIOUS ATTEMPT FAILED with:\n{prev_errors}\n\nTry a different approach."
+            previous_diff = state.get("proposed_diff", "")[-6000:]
+            diagnostic = state.get("retry_diagnostic") or state.get("test_output", "")[-4000:]
+            retry_hint = (
+                f"\n\nPrevious candidate (may be truncated):\n{previous_diff}"
+                f"\n\nFailure diagnostics:\n{diagnostic}"
+                "\nUse any recovered source to revise the candidate. Generate a complete diff "
+                "against the original checkout, since the previous candidate is not applied."
+            )
 
         user_message = f"""Issue analysis:
 {analysis}

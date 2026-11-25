@@ -5,6 +5,7 @@ from app.graph.edges import (
     route_after_sandbox,
     route_after_human,
     increment_retry,
+    route_after_retry,
 )
 from app.agents.issue_analyzer import issue_analyzer
 from app.agents.codebase_explorer import codebase_explorer
@@ -13,42 +14,11 @@ from app.agents.test_writer import test_writer
 from app.agents.validator import validator
 from app.agents.pr_creator import pr_creator
 from app.sandbox.runner import run_tests
+from app.graph.recovery import workspace_for
 
 
-# async def sandbox_node(state: dict) -> dict:
-#     """Sandbox is not an agent — it's a tool. We wrap it as a graph node here."""
-#     result = await run_tests(test_code=state.get("test_code", ""))
-#     return {
-#         "tests_passed": result["tests_passed"],
-#         "test_output": result["output"],
-#         "events": [{
-#             "agent": "sandbox",
-#             "type": "completed" if result["tests_passed"] else "failed",
-#             "summary": f"Pytest: {result['summary']['passed']} passed, {result['summary']['failed']} failed",
-#         }],
-#     }
-# async def sandbox_node(state: dict) -> dict:
-#     """Sandbox is not an agent — it's a tool. We wrap it as a graph node here."""
-#     # Local repo path — in dev we use /tmp/{repo_name}
-#     repo_name = state.get("repo_full_name", "").split("/")[-1]
-#     repo_path = f"/tmp/{repo_name}"
-
-#     result = await run_tests(
-#         test_code=state.get("test_code", ""),
-#         repo_path=repo_path,
-#     )
-#     return {
-#         "tests_passed": result["tests_passed"],
-#         "test_output": result["output"],
-#         "events": [{
-#             "agent": "sandbox",
-#             "type": "completed" if result["tests_passed"] else "failed",
-#             "summary": f"Pytest: {result['summary']['passed']} passed, {result['summary']['failed']} failed",
-#         }],
-#     }
 async def sandbox_node(state: dict) -> dict:
-    repo_name = state.get("repo_full_name", "").split("/")[-1]
-    repo_path = f"/tmp/{repo_name}"
+    repo_path = workspace_for(state)
 
     result = await run_tests(
         test_code=state.get("test_code", ""),
@@ -58,6 +28,8 @@ async def sandbox_node(state: dict) -> dict:
     return {
         "tests_passed": result["tests_passed"],
         "test_output": result["output"],
+        "sandbox_exit_code": result["exit_code"],
+        "failure_stage": "sandbox",
         "events": [{
             "agent": "sandbox",
             "type": "completed" if result["tests_passed"] else "failed",
@@ -107,8 +79,11 @@ def build_graph():
         {"human_review": "human_review", "retry": "increment_retry", "fail": END},
     )
 
-    # Retry loops back to fix_drafter
-    graph.add_edge("increment_retry", "fix_drafter")
+    graph.add_conditional_edges(
+        "increment_retry",
+        route_after_retry,
+        {"recover": "codebase_explorer", "redraft": "fix_drafter"},
+    )
 
     # After human decision: approve → PR creator, reject → end
     graph.add_conditional_edges(

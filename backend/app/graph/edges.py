@@ -1,5 +1,6 @@
 from typing import Literal
 from app.config import get_settings
+from app.graph.recovery import missing_context, workspace_for
 
 settings = get_settings()
 
@@ -31,5 +32,28 @@ def route_after_human(state: dict) -> Literal["pr_creator", "end"]:
 
 
 def increment_retry(state: dict) -> dict:
-    """Called between fix attempts — bumps the retry counter."""
-    return {"retry_count": state.get("retry_count", 0) + 1}
+    retry = state.get("retry_count", 0) + 1
+    stage = state.get("failure_stage") or "validator"
+    diagnostic = (
+        state.get("test_output", "") if stage == "sandbox"
+        else "\n".join(state.get("validation_errors", []))
+    )
+    chunks = missing_context(state, workspace_for(state))
+    locations = ", ".join(f"{item['file_path']}:{item['start_line']}-{item['end_line']}" for item in chunks)
+    action = (
+        f"retrieve source absent from the previous prompt ({locations})"
+        if chunks else f"revise directly ({stage}: no new source frame)"
+    )
+    return {
+        "retry_count": retry,
+        "retry_diagnostic": diagnostic[-4000:],
+        "recovery_candidates": chunks,
+        "events": [{
+            "agent": "increment_retry", "type": "completed",
+            "summary": f"Retry {retry}: {action}",
+        }],
+    }
+
+
+def route_after_retry(state: dict) -> Literal["recover", "redraft"]:
+    return "recover" if state.get("recovery_candidates") else "redraft"

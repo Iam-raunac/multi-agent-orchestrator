@@ -34,6 +34,7 @@ class ValidatorAgent(BaseAgent):
         passed = len(errors) == 0
 
         return {
+            "failure_stage": "validator",
             "validation_passed": passed,
             "validation_errors": errors,
             "events": [{
@@ -69,6 +70,7 @@ class ValidatorAgent(BaseAgent):
 
     def _fail(self, errors: list[str]) -> dict:
         return {
+            "failure_stage": "validator",
             "validation_passed": False,
             "validation_errors": errors,
             "events": [{"agent": self.name, "type": "failed", "summary": "; ".join(errors)}],

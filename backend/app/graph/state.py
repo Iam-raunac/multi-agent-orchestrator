@@ -33,6 +33,13 @@ class AgentState(TypedDict, total=False):
     # Sandbox output
     tests_passed: bool
     test_output: str
+    sandbox_exit_code: int
+
+    # Failure-guided retry
+    failure_stage: str
+    retry_diagnostic: str
+    recovery_candidates: list[dict]
+    recovered_context: list[dict]
 
     # PRCreator output
     pr_url: str
